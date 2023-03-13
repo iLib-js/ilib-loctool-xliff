@@ -1,7 +1,7 @@
 /*
  * XliffFileType.js - Represents a collection of iOS Xliff files
  *
- * Copyright © 2016-2017, 2019, HealthTap, Inc.
+ * Copyright © 2016-2017, 2019, 2023 HealthTap, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 
 var fs = require("fs");
 var path = require("path");
-var log4js = require("log4js");
 const spawnSync = require('child_process').spawnSync;
 var ilib = require("ilib");
 var Locale = require("ilib/lib/Locale.js");
@@ -31,14 +30,14 @@ var HamlFile = require("./HamlFile.js");
 var XliffFile = require("./XliffFile.js");
 var FileType = require("./FileType.js");
 
-var logger = log4js.getLogger("loctool.lib.XliffFileType");
-
 var XliffFileType = function(project) {
     this.type = "xml";
     this.parent.call(this, project);
 
+    this.API = project.getAPI();
     this.files = [];
     this.extensions = [ ".xliff" ];
+    this.logger = this.API.getLogger("loctool.lib.XliffFileType");
 };
 
 XliffFileType.prototype = new FileType();

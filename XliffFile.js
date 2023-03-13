@@ -1,7 +1,7 @@
 /*
  * XliffFile.js - represents an Android strings.xml resource file
  *
- * Copyright © 2016-2017, HealthTap, Inc.
+ * Copyright © 2016-2017, 2023 HealthTap, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ var xml2json = require('xml2json');
 var ilib = require("ilib");
 var Locale = require("ilib/lib/Locale.js");
 var PrettyData = require("pretty-data").pd;
-var log4js = require("log4js");
 
 var ResourceString = require("./ResourceString.js");
 var ResourceArray = require("./ResourceArray.js");
@@ -32,8 +31,6 @@ var Set = require("./Set.js");
 var Xliff = require("./Xliff.js");
 var utils = require("./utils.js");
 var TranslationSet = require("./TranslationSet.js")
-
-var logger = log4js.getLogger("loctool.lib.XliffFile");
 
 /**
  * @class Represents an Xliff file.
@@ -47,13 +44,14 @@ var logger = log4js.getLogger("loctool.lib.XliffFile");
  * @param {Object} props properties that control the construction of this file.
  */
 var XliffFile = function(props) {
-    if (props) {
-        this.project = props.project;
-        this.pathName = props.pathName;
-        this.type = props.type;
-        this.locale = props.locale;
-        this.context = props.context || undefined;
-    }
+    props = props || {};
+    this.project = props.project;
+    this.pathName = props.pathName;
+    this.type = props.type;
+    this.locale = props.locale;
+    this.context = props.context || undefined;
+    this.API = this.project.getAPI();
+    this.logger = this.API.getLogger("loctool.lib.XliffFile");
 };
 
 /**
@@ -62,7 +60,7 @@ var XliffFile = function(props) {
  */
 XliffFile.prototype.extract = function() {
     if (this.pathName && fs.existsSync(this.pathName)) {
-        logger.trace("XliffFile: loading strings in " + this.pathName);
+        this.logger.trace("XliffFile: loading strings in " + this.pathName);
         this.xliff = new Xliff({
             path: this.pathName,
             sourceLocale: this.project.sourceLocale,
@@ -72,7 +70,7 @@ XliffFile.prototype.extract = function() {
         this.xliff.deserialize(fs.readFileSync(this.pathName, "utf-8"));
 
         this.set = this.xliff.getTranslationSet();
-        logger.trace("After loading, there are " + this.set.size() + " resources.");
+        this.logger.trace("After loading, there are " + this.set.size() + " resources.");
 
         // mark this set as not dirty after we read it from disk
         // so we can tell when other code has added resources to it
@@ -121,15 +119,15 @@ XliffFile.prototype.getAll = function() {
  * @param {Resource} res a resource to add to this file
  */
 XliffFile.prototype.addResource = function(res) {
-    logger.trace("XliffFile.addResource: " + JSON.stringify(res) + " to " + this.project.getProjectId() + ", " + this.locale + ", " + JSON.stringify(this.context));
+    this.logger.trace("XliffFile.addResource: " + JSON.stringify(res) + " to " + this.project.getProjectId() + ", " + this.locale + ", " + JSON.stringify(this.context));
     if (res && res.getProject() === this.project.getProjectId()) {
-        logger.trace("correct project. Adding.");
+        this.logger.trace("correct project. Adding.");
         this.set.add(res);
     } else {
         if (res) {
-            logger.warn("Attempt to add a resource to a resource file with the incorrect project.");
+            this.logger.warn("Attempt to add a resource to a resource file with the incorrect project.");
         } else {
-            logger.warn("Attempt to add an undefined resource to a resource file.");
+            this.logger.warn("Attempt to add an undefined resource to a resource file.");
         }
     }
 };
@@ -156,7 +154,7 @@ XliffFile.prototype.localize = function() {};
  * Write the resource file out to disk again.
  */
 XliffFile.prototype.write = function() {
-    logger.trace("writing xliff resource file for project " + this.project.getProjectId());
+    this.logger.trace("writing xliff resource file for project " + this.project.getProjectId());
     if (this.set && this.set.isDirty()) {
         var dir;
 
@@ -166,9 +164,9 @@ XliffFile.prototype.write = function() {
 
         fs.writeFileSync(p, this.xliff.serialize(), "utf-8");
 
-        logger.debug("Wrote string translations to file " + this.pathName);
+        this.logger.debug("Wrote string translations to file " + this.pathName);
     } else {
-        logger.debug("File " + this.pathName + " is not dirty. Skipping.");
+        this.logger.debug("File " + this.pathName + " is not dirty. Skipping.");
     }
 };
 
